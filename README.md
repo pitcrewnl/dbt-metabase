@@ -205,8 +205,11 @@ In addition to foreign keys, semantic types and visibility types, Metabase also 
           metabase.has_field_values: list
           metabase.coercion_strategy: keyword
           metabase.number_style: decimal
+          metabase.number_separators: "."
           metabase.decimals: 3
 ```
+
+`metabase.number_separators` is the Metabase separator style for numbers, for example `"."` for no thousands separator, `".,"` for `1,000.00` or `", "` for `1 000,00`, matching the values Metabase's field formatting UI stores.
 
 See [Metabase documentation](https://www.metabase.com/docs/latest/api) for details and accepted values.
 

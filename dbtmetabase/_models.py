@@ -402,6 +402,12 @@ class ModelsMixin(metaclass=ABCMeta):
         if settings.get("number_style") != column.number_style and column.number_style:
             settings["number_style"] = column.number_style
             settings_updated = True
+        if (
+            settings.get("number_separators") != column.number_separators
+            and column.number_separators
+        ):
+            settings["number_separators"] = column.number_separators
+            settings_updated = True
         if settings.get("decimals") != column.decimals and column.decimals is not None:
             settings["decimals"] = column.decimals
             settings_updated = True
