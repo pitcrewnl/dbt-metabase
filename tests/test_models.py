@@ -122,6 +122,32 @@ def test_column_decimals_zero(core: MockDbtMetabase):
     assert found, "decimals=0 should be in API call"
 
 
+def test_column_number_separators(core: MockDbtMetabase):
+    """Test that number_separators is sent to Metabase API in field settings."""
+    core._manifest.read_models()
+    column = core._manifest.find_column("customers", "customer_id")
+    assert column is not None
+
+    column.number_separators = "."
+
+    core.export_models(
+        metabase_database="dbtmetabase",
+        skip_sources=True,
+        sync_timeout=1,
+        order_fields=False,
+    )
+
+    found = False
+    for call in core._metabase.api_calls:
+        if call["method"] == "put" and "json" in call["kwargs"]:
+            data = call["kwargs"]["json"]
+            if data.get("settings", {}).get("number_separators") == ".":
+                found = True
+                break
+
+    assert found, "number_separators should be in API call settings"
+
+
 def test_multi_database_get_tables(core: MockDbtMetabase):
     """Test _get_metabase_tables handles multi-database format."""
 

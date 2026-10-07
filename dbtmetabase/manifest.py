@@ -29,6 +29,7 @@ _COLUMN_META_FIELDS = _COMMON_META_FIELDS + [
     "has_field_values",
     "coercion_strate`gy",
     "number_style",
+    "number_separators",
     "decimals",
     "currency",
 ]
@@ -424,6 +425,7 @@ class Column:
     has_field_values: str | None = None
     coercion_strategy: str | None = None
     number_style: str | None = None
+    number_separators: str | None = None
     decimals: int | None = None
     currency: str | None = None
 
