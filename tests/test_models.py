@@ -305,3 +305,58 @@ def test_multi_database_foreign_key_resolution():
 
     field = ctx.get_field("MY_DATABASE.SILVER.ORDERS", "USER_ID")
     assert field["id"] == 2
+
+
+def _field_updates(core: MockDbtMetabase, field_id: int) -> list[dict]:
+    """The PUT bodies the export sent for one field."""
+    return [
+        call["kwargs"]["json"]
+        for call in core._metabase.api_calls
+        if call["method"] == "put"
+        and call["path"] == f"/api/field/{field_id}"
+        and "json" in call["kwargs"]
+    ]
+
+
+def test_undeclared_foreign_key_is_cleared(core: MockDbtMetabase):
+    """A Metabase field marked type/FK whose dbt column declares no relationship
+    and no semantic type loses the mark and its target: the yml is the contract."""
+    core._manifest.read_models()
+    column = core._manifest.find_column("orders", "customer_id")
+    assert column is not None
+    column.semantic_type = None
+    column.fk_target_table = None
+    column.fk_target_field = None
+
+    core.export_models(
+        metabase_database="dbtmetabase",
+        skip_sources=True,
+        sync_timeout=1,
+        order_fields=False,
+    )
+
+    updates = _field_updates(core, 79)
+    assert updates, "orders.customer_id should be updated"
+    body = updates[-1]
+    assert "semantic_type" in body and body["semantic_type"] is None
+    assert "fk_target_field_id" in body and body["fk_target_field_id"] is None
+
+
+def test_undeclared_category_is_preserved(core: MockDbtMetabase):
+    """A semantic type Metabase detected itself stays when the dbt column declares
+    none: only a Foreign Key mark follows the yml."""
+    core._manifest.read_models()
+    column = core._manifest.find_column("orders", "status")
+    assert column is not None
+    column.semantic_type = None
+
+    core.export_models(
+        metabase_database="dbtmetabase",
+        skip_sources=True,
+        sync_timeout=1,
+        order_fields=False,
+    )
+
+    for body in _field_updates(core, 78):
+        assert "semantic_type" not in body
+        assert "fk_target_field_id" not in body

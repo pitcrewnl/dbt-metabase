@@ -366,8 +366,18 @@ class ModelsMixin(metaclass=ABCMeta):
         column_display_name = column.display_name or None
         column_visibility = column.visibility_type or "normal"
 
-        # Preserve this relationship by default
-        if api_field["fk_target_field_id"] and not fk_target_field_id:
+        # Preserve a relationship Metabase holds, unless the field is a foreign key
+        # the dbt column no longer declares: then the mark and its target go, so a
+        # removed relationships test does not leave a stale foreign key behind.
+        api_semantic_type = api_field.get(semantic_type_key)
+        undeclared_fk = (
+            api_semantic_type == "type/FK" and column.semantic_type != "type/FK"
+        )
+        if (
+            api_field["fk_target_field_id"]
+            and not fk_target_field_id
+            and not undeclared_fk
+        ):
             fk_target_field_id = api_field["fk_target_field_id"]
 
         body_field: MutableMapping[str, Any | None] = {}
@@ -418,10 +428,12 @@ class ModelsMixin(metaclass=ABCMeta):
         if settings_updated:
             body_field["settings"] = settings
 
-        # Allow explicit null type to override detected one
-        api_semantic_type = api_field.get(semantic_type_key)
-        if (column.semantic_type and api_semantic_type != column.semantic_type) or (
-            column.semantic_type is NullValue and api_semantic_type
+        # Allow explicit null type to override detected one; an undeclared foreign
+        # key is cleared the same way
+        if (
+            (column.semantic_type and api_semantic_type != column.semantic_type)
+            or (column.semantic_type is NullValue and api_semantic_type)
+            or undeclared_fk
         ):
             body_field[semantic_type_key] = column.semantic_type or None
 
